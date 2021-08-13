@@ -68,21 +68,34 @@ def get_headers(payload):
 
 def get_data_from_message(payload, counts):
     """Returns data (size and encoded text) from gmail response
-    There are three different fromats where the data for an email message lies based on the size (how gmail splits things into parts)
+    Has to parse down 0 index of parts till it gets to the message
     """
-    data = None
+    payload_str = 'payload'
+    while 'parts' in payload:
+        payload = payload['parts'][0]
+        payload_str += '[parts][0]'
 
-    if 'parts' not in payload:
-        data = payload['body']
-        counts['payload[\'body\']'] += 1
-    elif 'parts' not in payload['parts'][0]:
-        data = payload['parts'][0]['body']
-        counts['payload[\'parts\'][0][\'body\']'] += 1
-    else:
-        data = payload['parts'][0]['parts'][0]['body']
-        counts['payload[\'parts\'][0][\'parts\'][0][\'body\']'] += 1
+
+    key = payload_str + '[body]'
     
-    return data
+    if key not in counts:
+        counts[key] = 0  
+    else:
+        counts[key] += 1
+
+    return payload['body']
+            
+        
+    # if 'parts' not in payload:
+    #     data = payload['body']
+    #     counts['payload[\'body\']'] += 1
+    # elif 'parts' not in payload['parts'][0]:
+    #     data = payload['parts'][0]['body']
+    #     counts['payload[\'parts\'][0][\'body\']'] += 1
+    # else:
+    #     data = payload['parts'][0]['parts'][0]['body']
+    #     counts['payload[\'parts\'][0][\'parts\'][0][\'body\']'] += 1
+    
 
 
 def make_message_list(service, thd_messages, counts, min_date='1900/01/01'):
@@ -118,6 +131,7 @@ def make_message_list(service, thd_messages, counts, min_date='1900/01/01'):
                 data['data'] = data['data'].replace("-","+").replace("_","/")
                 decoded_data = base64.b64decode(data['data']).decode('utf-8')
                 messages.append({'date': date_created, 'subject': subject if subject is not None else '' , 'message': decoded_data})
+    return messages
 
 
 def get_emails_by_thread(service, contact, min_date):
@@ -134,7 +148,7 @@ def get_emails_by_thread(service, contact, min_date):
 
     messages_by_thd = {}
     ovr = 0
-    counts = {'no date': 0, 'date out of range': 0, 'skipped': 0, 'payload[\'body\']': 0, 'payload[\'parts\'][0][\'body\']': 0, 'payload[\'parts\'][0][\'parts\'][0][\'body\']': 0}
+    counts = {'skipped': 0}
 
     for elem in threads:
         print(elem['id'])
@@ -163,6 +177,7 @@ def get_emails_by_thread(service, contact, min_date):
 def main():
     service = get_service()
     messages = get_emails_by_thread(service, 'laramate@amazon.com', '2021/07/21')
+    print(messages)
     
     # print(messages['17ae30d604b696f5'][0])
     # print()
