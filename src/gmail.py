@@ -79,7 +79,7 @@ def get_data_from_message(payload, counts):
     key = payload_str + '[body]'
     
     if key not in counts:
-        counts[key] = 0  
+        counts[key] = 1  
     else:
         counts[key] += 1
 
@@ -103,16 +103,13 @@ def make_message_list(service, thd_messages, counts, min_date='1900/01/01'):
     """
     messages = []
     #messages sorted in chronilogical order so have to reverse
-    for thd_msg in reversed(thd_messages):
-        msg_id = thd_msg['id']
-        
-        msg = service.users().messages().get(userId='me', id=msg_id).execute()
+    for msg in reversed(thd_messages):
         payload = msg['payload']
 
         subject, date_created = get_headers(payload)
 
         if date_created is None:
-            counts['no date']+=1
+            counts['no date'] += 1 
             continue
 
         if reformat_date(date_created, '%a, %d %b %Y %H:%M:%S %z') < reformat_date(min_date):
@@ -148,11 +145,10 @@ def get_emails_by_thread(service, contact, min_date):
 
     messages_by_thd = {}
     ovr = 0
-    counts = {'skipped': 0}
+    counts = {'skipped': 0, 'no date': 0}
 
     for elem in threads:
         print(elem['id'])
-        sleep(2)
         thd_id = elem['id']
 
         try:
@@ -177,7 +173,7 @@ def get_emails_by_thread(service, contact, min_date):
 def main():
     service = get_service()
     messages = get_emails_by_thread(service, 'laramate@amazon.com', '2021/07/21')
-    print(messages)
+    
     
     # print(messages['17ae30d604b696f5'][0])
     # print()
