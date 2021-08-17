@@ -8,12 +8,14 @@ import base64
 from bs4 import BeautifulSoup
 import datetime
 from time import sleep
+import spacy
+nlp = spacy.load('en_core_web_sm')
 
 # If modifying these scopes, delete the file token.json.
 SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
 MONTH_TO_NUM = {'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04', 'May': '05', 'Jun': '06', 'Jul': '07', 'Aug': '08', 'Sep': '09', 'Oct': '10', 'Nov': '11', 'Dec': '12'}
 
-#DOW, D M (abrv) Y Time Millis -> Y/M/Day
+
 def get_service():
     """Shows basic usage of the Gmail API.
     Lists the user's Gmail labels.
@@ -40,6 +42,7 @@ def get_service():
     service = build('gmail', 'v1', credentials=creds)
     return service
 
+#DOW, D M (abrv) Y Time Millis -> Y/M/Day
 def reformat_date(date_str, from_format = None):
     """Creates a date from the min_date in YYYY/MM/DD format
     Reformats date strings to YYYY/MM/DD if format argument is supplied
@@ -53,18 +56,13 @@ def reformat_date(date_str, from_format = None):
 def get_headers(payload):
     """Gets necessary headers (subject and date of creation) from gmail message (from thread api) payload
     """
-    subject = None
     date_created = None
     for header in payload['headers']:
-        if header['name'] == 'Subject':
-            subject = header['value']
-        elif header['name'] == 'Date':
-            date_created = header['value'] 
-
-        if date_created is not None and subject is not None:
+        if header['name'] == 'Date':
+            date_created = header['value']
             break
-        
-    return subject, date_created
+                
+    return date_created
 
 def get_data_from_message(payload, counts):
     """Returns data (size and encoded text) from gmail response
@@ -96,6 +94,10 @@ def get_data_from_message(payload, counts):
     #     data = payload['parts'][0]['parts'][0]['body']
     #     counts['payload[\'parts\'][0][\'parts\'][0][\'body\']'] += 1
     
+def trim_email_excess(text):
+    trimmed_email = text.split('>', 1)[0]
+    return trimmed_email
+
 
 
 def make_message_list(service, thd_messages, counts, min_date='1900/01/01'):
@@ -106,7 +108,7 @@ def make_message_list(service, thd_messages, counts, min_date='1900/01/01'):
     for msg in reversed(thd_messages):
         payload = msg['payload']
 
-        subject, date_created = get_headers(payload)
+        date_created = get_headers(payload)
 
         if date_created is None:
             counts['no date'] += 1 
@@ -126,8 +128,10 @@ def make_message_list(service, thd_messages, counts, min_date='1900/01/01'):
                 continue
             else:
                 data['data'] = data['data'].replace("-","+").replace("_","/")
-                decoded_data = base64.b64decode(data['data']).decode('utf-8')
-                messages.append({'date': date_created, 'subject': subject if subject is not None else '' , 'message': decoded_data})
+                #here is where the decoded data is
+
+                decoded_data = trim_email_excess(base64.b64decode(data['data']).decode('utf-8'))
+                messages.append({'date': date_created, 'message': decoded_data})
     return messages
 
 
@@ -168,11 +172,12 @@ def get_emails_by_thread(service, contact, min_date):
     print('Messages Added and Parts Breakdown')
     print(counts)
 
-    return messages_by_thd  
+    return messages_by_thd 
 
 def main():
     service = get_service()
     messages = get_emails_by_thread(service, 'laramate@amazon.com', '2021/07/21')
+    print(messages)
     
     
     # print(messages['17ae30d604b696f5'][0])
