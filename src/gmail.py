@@ -9,7 +9,10 @@ from bs4 import BeautifulSoup
 import datetime
 from time import sleep
 import spacy
+from Parser import convert
+import pytz
 nlp = spacy.load('en_core_web_sm')
+eastern = pytz.timezone('US/Eastern')
 
 # If modifying these scopes, delete the file token.json.
 SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
@@ -84,23 +87,23 @@ def get_data_from_message(payload, counts):
     return payload['body']
             
         
-    # if 'parts' not in payload:
-    #     data = payload['body']
-    #     counts['payload[\'body\']'] += 1
-    # elif 'parts' not in payload['parts'][0]:
-    #     data = payload['parts'][0]['body']
-    #     counts['payload[\'parts\'][0][\'body\']'] += 1
-    # else:
-    #     data = payload['parts'][0]['parts'][0]['body']
-    #     counts['payload[\'parts\'][0][\'parts\'][0][\'body\']'] += 1
+def remove_greetings_and_endings(email):
+    return convert(email)
     
 def trim_email_excess(text):
-    trimmed_email = text.split('>', 1)[0]
-    return trimmed_email
+    """Previous messages linked from gmail thread exist in api call. They start at '<' in the text
+    This returns only the message the id relates to without the rest of thread"""
+    email_without_past_thread = text.split('>', 1)[0]
+    greeting_signature_trimmed_email = remove_greetings_and_endings(email_without_past_thread)
+    # print('COMPARE')
+    # print(email_without_past_thread)
+    # print("-----------------")
+    # print(greeting_signature_trimmed_email)
+    return greeting_signature_trimmed_email
 
 
 
-def make_message_list(service, thd_messages, counts, min_date='1900/01/01'):
+def format_and_decode_messages(service, thd_messages, counts, min_date='1900/01/01'):
     """Generates a list of dictionaries that contain the subject, date of creation, and decoded message text of every message in a thread
     """
     messages = []
@@ -113,8 +116,14 @@ def make_message_list(service, thd_messages, counts, min_date='1900/01/01'):
         if date_created is None:
             counts['no date'] += 1 
             continue
+        
+        try:
+            reformatted_date_created = reformat_date(date_created, '%a, %d %b %Y %H:%M:%S %z')
+        except ValueError:
+            date_created = date_created.replace('(', '').replace(')', '')
+            reformatted_date_created = reformat_date(date_created, '%a, %d %b %Y %H:%M:%S %z %Z')
 
-        if reformat_date(date_created, '%a, %d %b %Y %H:%M:%S %z') < reformat_date(min_date):
+        if reformatted_date_created < reformat_date(min_date):
             return messages
 
         else:
@@ -131,7 +140,7 @@ def make_message_list(service, thd_messages, counts, min_date='1900/01/01'):
                 #here is where the decoded data is
 
                 decoded_data = trim_email_excess(base64.b64decode(data['data']).decode('utf-8'))
-                messages.append({'date': date_created, 'message': decoded_data})
+                messages.append({'date': date_created, 'text': decoded_data})
     return messages
 
 
@@ -163,7 +172,7 @@ def get_emails_by_thread(service, contact, min_date):
         
         ovr += len(thd['messages'])
         #print(thd)
-        thd_messages = make_message_list(service, thd['messages'], counts, min_date)
+        thd_messages = format_and_decode_messages(service, thd['messages'], counts, min_date)
 
         messages_by_thd[thd_id] = thd_messages
         
@@ -174,16 +183,3 @@ def get_emails_by_thread(service, contact, min_date):
 
     return messages_by_thd 
 
-def main():
-    service = get_service()
-    messages = get_emails_by_thread(service, 'laramate@amazon.com', '2021/07/21')
-    print(messages)
-    
-    
-    # print(messages['17ae30d604b696f5'][0])
-    # print()
-    # print(messages['17ae30d604b696f5'][1])
-    # print()
-    # print(messages['17ae30d604b696f5'][2])
-if __name__ == '__main__':
-    main()
