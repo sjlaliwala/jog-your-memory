@@ -7,38 +7,29 @@ STOPWORDS |= {'nice', 'hope', 'let','know','best','regards','wishes','fond' 'reg
 STOPWORDS |= {'srini', 'laliwala', 'matt', 'lara'}
 nlp.add_pipe("textrank")
 
+def get_top_phrases(messages):
+    joined_messages = join_thread_messages(messages)
+    text = remove_stopwords(joined_messages)
+    top_phrases = rank_top_phrases(id, text)
+    return top_phrases
 
-
-def get_top_phrases(threads):
-    for id, messages in threads.items():
-        joined_messages = join_thread_messages(messages)
-        rank_top_phrases(id, joined_messages)
-        
-        
-        # print('next message')
 
 def join_thread_messages(messages):
-    joined_messages = ''.join(msg['text'] for msg in messages)
+    joined_messages = ''.join(msg for msg in messages)
     return joined_messages
 
+def rank_top_phrases(id, text):
+    top_phrases = []
+    text = remove_stopwords(text)
+    doc = nlp(text)
+    return doc._.phrases[:3]
+
+    
+              
 def remove_stopwords(text):
     no_stopwords_words = []
     doc = nlp(text)
-    print(type(doc))
     for token in doc:
         if token.is_stop == False:
             no_stopwords_words.append(token.text)
     return ' '.join(no_stopwords_words)
-
-
-
-
-def rank_top_phrases(id, text):
-    text = remove_stopwords(text)
-    doc = nlp(text)
-    for phrase in doc._.phrases[:10]:
-        print(phrase)
-    print('next message')
-        # print(phrase.text)
-        # print(phrase.rank, phrase.count)
-        # print(phrase.chunks)

@@ -19,6 +19,17 @@ STOPWORDS = nlp.Defaults.stop_words
 STOPWORDS |= {'hey', 'hi', 'nice', 'hope', 'let','know','best','regards','wishes','fond' 'regards','kind','looking','forward','hearing','regards','sincerely','thank','thanks','appreciation','cheers','faithfully','many','warmly','truly','love','ya','later','xoxo','thx','hugs'}
 STOPWORDS |= {'srini', 'laliwala', 'matt', 'lara'}
 
+def get_most_important_words(threads):
+    for thd, msgs in threads.items():
+        print(thd)
+        bloblist = generate_textblobs(msgs)
+        for blob in bloblist:
+            scores = {word: tfidf(word, blob, bloblist) for word in blob.words}
+            sorted_words = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+            for word, score in sorted_words[:3]:
+                
+                print("\tWord: {}, TF-IDF: {}".format(word, round(score, 5)))
+
 def tf(word, blob):
     return blob.words.count(word) / len(blob.words)
 
@@ -45,13 +56,3 @@ def generate_textblobs(messages):
     return bloblist
 
 
-def get_most_important_words(threads):
-    for thd, msgs in threads.items():
-        print(thd)
-        bloblist = generate_textblobs(msgs)
-        for blob in bloblist:
-            scores = {word: tfidf(word, blob, bloblist) for word in blob.words}
-            sorted_words = sorted(scores.items(), key=lambda x: x[1], reverse=True)
-            for word, score in sorted_words[:3]:
-                
-                print("\tWord: {}, TF-IDF: {}".format(word, round(score, 5)))
