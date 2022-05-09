@@ -2,16 +2,11 @@ from GmailAPI import GmailAPI
 from summarizers import textrank
 from GmailPreprocessor import GmailPreprocessor
 import datetime
-#nmalik@andrew.cmu.edu
-#laramate@amazon.com
-#kanaklaliwala@yahoo.com
-#salaliwala@gmail.com
-#shrivats.12@gmail.com
-#s13narayanan@gmail.com
+
 def main():
     # date_str = 'Wed, 14 Apr 2021 15:58:47 -0400 (EDT)'
     # print(datetime.datetime.strptime(date_str, '%a, %d %b %Y %H:%M:%S %z'))
-    contacts_to_last_conversation_date = {'s13narayan@gmail.com': '2020/05/05'}
+    contacts_to_last_conversation_date = {'ENTER_EMAIL': 'ENTER_DATE_STRING_YYYY/MM/DD'}
     gmail = GmailAPI()
     contacts_threads_to_messages = gmail.get_messages_by_threads_by_contact_after_date(contacts_to_last_conversation_date) #'laramate@amazon.com',
     gmail_processor = GmailPreprocessor()
